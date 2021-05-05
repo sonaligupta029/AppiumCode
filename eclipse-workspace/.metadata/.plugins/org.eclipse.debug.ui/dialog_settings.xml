@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<item key="EXT_FOLDER_SOURCE_LAST_SUBDIR_SETTING" value="false"/>
+	<section name="org.eclipse.debug.ui.SCOPED_SAVE_SELECTION_DIALOG">
+		<item key="DIALOG_WIDTH" value="291"/>
+		<item key="DIALOG_HEIGHT" value="350"/>
+		<item key="DIALOG_FONT_NAME" value="1|.AppleSystemUIFont|11.0|0|COCOA|1|.AppleSystemUIFont"/>
+	</section>
+	<section name="org.eclipse.debug.ui.LAUNCH_CONFIGURATIONS_DIALOG_SECTION">
+		<item key="org.eclipse.debug.ui.DIALOG_SASH_WEIGHTS_1" value="240"/>
+		<item key="org.eclipse.debug.ui.DIALOG_SASH_WEIGHTS_2" value="759"/>
+		<item key="org.eclipse.debug.ui.EXPANDED_NODES" value=", org.testng.eclipse.launchconfig, org.eclipse.jdt.launching.localJavaApplication, "/>
+		<item key="DIALOG_WIDTH" value="1344"/>
+		<item key="DIALOG_HEIGHT" value="728"/>
+		<item key="DIALOG_FONT_NAME" value="1|.AppleSystemUIFont|11.0|0|COCOA|1|.AppleSystemUIFont"/>
+	</section>
+	<section name="org.eclipse.debug.ui.STRING_VARIABLE_SELECTION_DIALOG_SECTION">
+		<item key="DIALOG_X_ORIGIN" value="262"/>
+		<item key="DIALOG_Y_ORIGIN" value="8"/>
+		<item key="DIALOG_WIDTH" value="430"/>
+		<item key="DIALOG_HEIGHT" value="535"/>
+		<item key="DIALOG_FONT_NAME" value="1|.AppleSystemUIFont|11.0|0|COCOA|1|.AppleSystemUIFont"/>
+	</section>
+	<section name="ExportLaunchConfigurations">
+		<item key="overwrite" value="true"/>
+		<item key="oldpath" value="/Users/sonaligupta/Documents/api-automation"/>
+	</section>
+	<section name="SHOW_COMMAND_LINE_DIALOG">
+		<item key="DIALOG_X_ORIGIN" value="475"/>
+		<item key="DIALOG_Y_ORIGIN" value="162"/>
+		<item key="DIALOG_WIDTH" value="378"/>
+		<item key="DIALOG_HEIGHT" value="304"/>
+		<item key="DIALOG_FONT_NAME" value="1|.AppleSystemUIFont|11.0|0|COCOA|1|.AppleSystemUIFont"/>
+	</section>
+	<section name="org.eclipse.debug.ui.WORKSPACE_SELECTION_DIALOG">
+		<item key="DIALOG_WIDTH" value="447"/>
+		<item key="DIALOG_HEIGHT" value="389"/>
+		<item key="DIALOG_FONT_NAME" value="1|.AppleSystemUIFont|11.0|0|COCOA|1|.AppleSystemUIFont"/>
+	</section>
+	<section name="org.eclipse.debug.ui.SHARED_LAUNCH_CONFIGURATON_DIALOG">
+		<item key="DIALOG_WIDTH" value="346"/>
+		<item key="DIALOG_HEIGHT" value="456"/>
+		<item key="DIALOG_FONT_NAME" value="1|.AppleSystemUIFont|11.0|0|COCOA|1|.AppleSystemUIFont"/>
+	</section>
+</section>

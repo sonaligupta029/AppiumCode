@@ -1,0 +1,32 @@
+package Test;
+
+import java.util.ArrayList;
+import java.util.Set;
+
+public class TestNoonPay {
+
+	public static void main(String[] args) {
+		Integer [] a={10,20,20,30,30,30,40,50,50, 60, 70, 70,70};
+//		Set<Integer> set=(Set<Integer>) new ArrayList();
+//		for(Integer i: a)
+//		{
+//			
+//		}
+		int len=a.length;
+		Integer[] b;
+		for (int i=0; i<len;i++)
+		{
+			for (int j=i+1; j<len-1;j++)
+			{
+				if(a[i]!=a[j])
+				{
+					
+				}
+				
+			}
+		}
+		
+
+	}
+
+}

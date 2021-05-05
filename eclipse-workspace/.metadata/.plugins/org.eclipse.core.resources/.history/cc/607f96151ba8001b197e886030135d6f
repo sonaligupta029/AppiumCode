@@ -1,0 +1,21 @@
+package Test;
+
+public class TestJunglee {
+
+	public static void main(String[] args) {
+		String str= "banana";
+		char[] cha=str.toCharArray();
+		String ch = "";
+		for(int i=str.length();i>=0;i--)
+		{
+
+			ch=ch+cha[i];
+			
+	   
+		}
+		
+		if(str.equals(ch))
+			System.out.println("Not a palindrome");
+	}
+
+}

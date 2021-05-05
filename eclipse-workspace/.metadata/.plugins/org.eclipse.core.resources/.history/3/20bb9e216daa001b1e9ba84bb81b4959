@@ -1,0 +1,28 @@
+
+public class Test {
+	static int[] a ={7, 3, 5, 4, 5, 3, 4};   
+	static int sum=14;
+
+	public static void main(String[] args) {
+//		for (int i=0;i<a.length;i++)
+//		{
+//			for(int j=i+1;j<a.length;j++)
+//			{
+//				for(int k=j+1;k<a.length;k++)
+//				{
+//					if((a[i]+a[j]+a[k])==sum) {
+//						System.out.println(a[i] +" "+a[j] +" "+a[k]);
+//				}				
+//			}			
+//		}
+//	}
+		
+		for(int j:a)
+		{
+			if((a[j]+a[j+1]+a[j+2])==sum && j<a.length-2)
+			{
+				System.out.println(a[j] +" "+a[j+1] +" "+a[j+2]);
+			}
+		}
+	}}
+

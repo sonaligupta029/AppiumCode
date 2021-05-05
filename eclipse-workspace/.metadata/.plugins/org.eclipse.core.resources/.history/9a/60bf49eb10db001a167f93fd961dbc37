@@ -1,0 +1,690 @@
+package com.rapido.api.customer;
+
+import com.rapido.api.Groups;
+import com.rapido.api.TestBase;
+import com.rapido.api.captain.entities.RideState;
+import com.rapido.api.customer.entities.Location;
+import com.rapido.api.customer.entities.ServiceType;
+import com.rapido.api.data.Captain;
+import com.rapido.api.data.CaptainPool;
+import com.rapido.api.data.Customer;
+import com.rapido.api.db.DbHelper;
+import com.rapido.api.endpoints.auth.AuthClient;
+import com.rapido.api.endpoints.auth.login.LoginResponse;
+import com.rapido.api.endpoints.auth.verify.VerifyOTPResponse;
+import com.rapido.api.endpoints.captain.acceptReject.AcceptRejectResponse;
+import com.rapido.api.endpoints.captain.clients.CaptainClient;
+import com.rapido.api.endpoints.captain.location.LocationMessageResponse;
+import com.rapido.api.endpoints.captain.orderStatus.OrderStatusResponse;
+import com.rapido.api.endpoints.captain.riderStatus.RiderStatusMessageResponse;
+import com.rapido.api.endpoints.customer.clients.CustomerClient;
+import com.rapido.api.endpoints.customer.customercancel.CancelResponse;
+import com.rapido.api.endpoints.customer.favouriteAddress.FavAddressDeleteResponse;
+import com.rapido.api.endpoints.customer.favouriteAddress.FavAddressResponse;
+import com.rapido.api.endpoints.customer.orderStatus.CustomerStatusResponse;
+import com.rapido.api.endpoints.profiles.DashboardClient;
+import com.rapido.api.endpoints.profiles.abortOrder.AbortResponse;
+import com.rapido.api.entities.DropOffLocation;
+import com.rapido.api.entities.RideLocation;
+import com.rapido.api.utils.CustomerPool;
+import com.rapido.api.utils.DataHelper;
+import com.rapido.api.utils.RideHelper;
+import io.qameta.allure.Description;
+import io.qameta.allure.Epic;
+import io.qameta.allure.Feature;
+import io.qameta.allure.Story;
+import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import static com.rapido.api.captain.entities.RideState.DROPPED;
+import static org.apache.commons.httpclient.HttpStatus.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotEquals;
+
+@Test
+@Epic("End to end Order Flow")
+@Feature("Order Feature")
+public class B2COrderFlowTest extends TestBase {
+
+    private CustomerClient customerClient;
+    private CaptainClient captainClient;
+    private CaptainPool captainPool;
+    private CustomerPool customerPool;
+    private RideHelper rideHelper;
+    private  AuthClient authClient ;
+
+    public B2COrderFlowTest() {
+        this.captainPool = new CaptainPool();
+        this.customerPool = new CustomerPool();
+        this.authClient= new AuthClient();
+    }
+
+    @BeforeClass(alwaysRun = true)
+    public void abortExistingOrders() {
+        DataHelper.abortExistingOrders(captainPool.getCaptainForLink_11().getMobile());
+        DataHelper.abortExistingOrders(captainPool.getCaptainForLink_12().getMobile());
+    }
+
+    @Test(groups = {Groups.SMOKE, Groups.REGRESSION, Groups.OM}, enabled = true, priority = 1)
+    @Description("Customer requests Rapido and completes the ride")
+    @Story("Customer should be able to book Rapido using cash And complete ride")
+    public void userShouldBeAbleToBookRapidoUsingCashAndCompleteRide() {
+        Location pickupLocation = RideLocation.COXTOWN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+
+        Captain captain = captainPool.getCaptainForLink_11();
+        Customer customer = customerPool.getValidCustomer();
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        // Assert.assertEquals(acceptResponse.getAcceptReject().getOrderId(), orderId);
+        CustomerStatusResponse customerStatusResponse = customerClient.orderStatus();
+        assertEquals(customerStatusResponse.getStatus(), SC_OK);
+
+        OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+        statusResponse = captainClient.captainStartRide(customer.getId(), orderId, customer.getPin());
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.STARTED);
+
+        statusResponse = captainClient.captainCompletesRide(customer.getId(), orderId, dropLocation);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.DROPPED);
+    }
+
+    @Test(groups = {Groups.REGRESSION, Groups.OM}, enabled = true,priority = 2)
+    @Description("Customer Cancels Ride while customer on the way")
+    @Story("Customer should be able to cancel a ride when captain accepts the ride and captain on the way")
+    public void verifyUserCancelRideAfterAcceptanceAndCaptainOnTheWay() {
+        Location pickupLocation = RideLocation.COXTOWN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+
+        Captain captain = captainPool.getCaptainForLink_11();
+        Customer customer = customerPool.getValidCustomer3();
+
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        // Assert.assertEquals(acceptResponse.getAcceptReject().getOrderId(), orderId);
+        rideHelper.checkOrderStatus(RideState.ONTHEWAY);
+
+        CancelResponse cancelResponse = customerClient.cancelRide(customer.getPickupLocationDetails(), orderId, false);
+        assertEquals(cancelResponse.getStatus(), SC_OK);
+        assertEquals(cancelResponse.getInfo().getMessage(), "Cancelled");
+    }
+
+    @Test(groups = {Groups.REGRESSION, Groups.OM}, enabled = true, priority = 3)
+    @Description("Customer Cancels Ride after captain arrived")
+    @Story("Customer should be able to cancel a ride when captain accepts the order and captain arrived")
+    public void verifyUserCancelRideAfterAcceptanceAndCaptainArrived() {
+        Location pickupLocation = RideLocation.COXTOWN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+
+        Captain captain = captainPool.getCaptainForLink_11();
+        Customer customer = customerPool.getValidCustomerWithWallet();
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        // Assert.assertEquals(acceptResponse.getAcceptReject().getOrderId(), orderId);
+        rideHelper.checkOrderStatus(RideState.ONTHEWAY);
+
+        OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+        CancelResponse cancelResponse = customerClient.cancelRide(customer.getPickupLocationDetails(), orderId, false);
+        assertEquals(cancelResponse.getStatus(), SC_OK);
+        assertEquals(cancelResponse.getInfo().getMessage(), "Cancelled");
+    }
+
+    @Test(groups = {Groups.REGRESSION, Groups.OM}, enabled = true, priority = 4)
+    @Description("Customer Cancels Ride after captain started")
+    @Story("Customer should be able to cancel a ride when captain accepts the order and captain started the ride")
+    public void verifyUserCancelRideAfterAcceptanceAndCaptainStarted() {
+        Location pickupLocation = RideLocation.COXTOWN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+
+        Captain captain = captainPool.getCaptainForLink_11();
+        Customer customer = customerPool.getValidCustomer4();
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        // Assert.assertEquals(acceptResponse.getAcceptReject().getOrderId(), orderId);
+        CustomerStatusResponse customerStatusResponse = customerClient.orderStatus();
+        assertEquals(customerStatusResponse.getStatus(), SC_OK);
+
+        OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+        statusResponse = captainClient.captainStartRide(customer.getId(), orderId, customer.getPin());
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.STARTED);
+
+        CancelResponse cancelResponse = customerClient.cancelRide(customer.getPickupLocationDetails(), orderId, true);
+        assertEquals(cancelResponse.getStatus(), SC_INTERNAL_SERVER_ERROR);
+        assertEquals(cancelResponse.getInfo().getMessage(), "Unable to cancel the order");
+
+        DashboardClient dashboardClient = new DashboardClient();
+        AbortResponse abortResponse = dashboardClient.abortOrder(orderId, captain.getId());
+        assertEquals(abortResponse.getInfo().getMessage(),
+                "Successfully aborted order. Message will be received if corresponding sockets are open");
+        assertEquals(abortResponse.getStatus(), SC_OK);
+    }
+
+
+    @Test(groups = {Groups.REGRESSION, Groups.OM}, enabled = true, priority = 5)
+    @Description("Customer requests Rapido and completes the ride")
+    @Story("Customer should be able to book Rapido using  payment as wallet And complete ride")
+    public void verifyuserShouldBeAbleToBookRapidoUsingWalletAndCompleteRide() {
+
+        Location pickupLocation = RideLocation.COXTOWN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+
+        Captain captain = captainPool.getCaptainForLink_11();
+
+        Customer customer = customerPool.getValidCustomerWithWallet();
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ONTHEWAY);
+
+        OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+        statusResponse = captainClient.captainStartRide(customer.getId(), orderId, customer.getPin());
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.STARTED);
+
+        statusResponse = captainClient.captainCompletesRide(customer.getId(), orderId, dropLocation);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.DROPPED);
+    }
+
+    @Test(groups = {Groups.REGRESSION, Groups.OM}, enabled = true, priority = 6)
+    @Description("Customer requests Rapido ,edits pickup location when captain on the way and completes the ride")
+    @Story("Customer should be able to book Rapido using  payment as wallet , edit the pickup Location when captain on the way and complete ride")
+    public void verifyuserShouldBeAbleToCompleteOrderByEditingPickupWhenCaptainOnTheWay() {
+
+        Location pickupLocation = RideLocation.KORMANAGALA_POLIC_STN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+        Captain captain = captainPool.getCaptainForLink_11();
+        Customer customer = customerPool.getValidCustomerWithWallet();
+        Location newPickupLocation = RideLocation.KORAMANGALA_C2C_100M_AWAY.getLocation();
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ONTHEWAY);
+
+        customerClient.editOrderPickupLocation(newPickupLocation, orderId, SC_OK);
+        captainClient.updateLocation(newPickupLocation);
+
+        OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+        statusResponse = captainClient.captainStartRide(customer.getId(), orderId, customer.getPin());
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.STARTED);
+
+        statusResponse = captainClient.captainCompletesRide(customer.getId(), orderId, dropLocation);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.DROPPED);
+    }
+
+    @Test(groups = {Groups.REGRESSION, Groups.OM}, enabled = true, priority = 7)
+    @Description("Customer requests Rapido ,edits pickup location when captain arrived and completes the ride")
+    @Story("Customer should be able to book Rapido using  payment as wallet , edit the pickup Location when captain arrived and complete ride")
+    public void verifyuserShouldBeAbleToCompleteOrderByEditingPickupWhenCaptainArrived() {
+
+
+        Location pickupLocation = RideLocation.KORMANAGALA_POLIC_STN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+        Captain captain = captainPool.getCaptainForLink_11();
+        Customer customer = customerPool.getValidCustomerWithWallet();
+        Location newPickupLocation = RideLocation.KORAMANGALA_C2C_100M_AWAY.getLocation();
+
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ONTHEWAY);
+
+        OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+        customerClient.editOrderPickupLocation(newPickupLocation, orderId, SC_OK);
+        captainClient.updateLocation(newPickupLocation);
+
+        statusResponse = captainClient.captainStartRide(customer.getId(), orderId, customer.getPin());
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.STARTED);
+
+        statusResponse = captainClient.captainCompletesRide(customer.getId(), orderId, dropLocation);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.DROPPED);
+    }
+
+    @Test(groups = {Groups.REGRESSION, Groups.OM}, enabled = true, priority = 8)
+    @Description("Customer requests Rapido ,edit pickup location when captain Started and completes the ride")
+    @Story("Customer should be able to book Rapido using  payment as wallet , edit the pickup Location when captain started and complete ride")
+    public void verifyuserShouldBeAbleToCompleteOrderByEditingPickupWhenCaptainStarted() {
+
+        Location pickupLocation = RideLocation.KORMANAGALA_POLIC_STN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+        Captain captain = captainPool.getCaptainForLink_11();
+        Customer customer = customerPool.getValidCustomerWithWallet();
+        Location newPickupLocation = RideLocation.KORAMANGALA_C2C_100M_AWAY.getLocation();
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ONTHEWAY);
+
+        OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+        statusResponse = captainClient.captainStartRide(customer.getId(), orderId, customer.getPin());
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.STARTED);
+
+        customerClient.editOrderPickupLocation(newPickupLocation, orderId, SC_OK);
+
+        captainClient.updateLocation(newPickupLocation);
+
+        statusResponse = captainClient.captainCompletesRide(customer.getId(), orderId, dropLocation);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.DROPPED);
+    }
+
+    @Test(groups = {Groups.REGRESSION, Groups.OM}, enabled = true, priority = 9)
+    @Description("Customer requests Rapido ,edit drop location when captain Started and completes the ride")
+    @Story("Customer should be able to book Rapido using  payment as wallet , edit the drop Location when captain started and complete ride")
+    public void verifyuserShouldBeAbleToCompleteOrderByEditingDropWhenCaptainOnTheWay() {
+
+        Location pickupLocation = RideLocation.COXTOWN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+        Captain captain = captainPool.getCaptainForLink_11();
+        Customer customer = customerPool.getValidCustomerWithWallet();
+        Location newDropLocation = DropOffLocation.BANNERGATTA_ROAD_100M_AWAY.getLocation();
+
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ONTHEWAY);
+
+        customerClient.editOrderDropLocation(newDropLocation, orderId, SC_OK);
+
+        OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+        statusResponse = captainClient.captainStartRide(customer.getId(), orderId, customer.getPin());
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.STARTED);
+
+        captainClient.updateLocation(newDropLocation);
+
+        statusResponse = captainClient.captainCompletesRide(customer.getId(), orderId, newDropLocation);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.DROPPED);
+    }
+
+    @Test(groups = {Groups.REGRESSION, Groups.OM}, enabled = true, priority = 10)
+    @Description("Customer requests Rapido ,edit drop location when captain Started and completes the ride")
+    @Story("Customer should be able to book Rapido using  payment as wallet , edit the drop Location when captain started and complete ride")
+    public void verifyuserShouldBeAbleToCompleteOrderByEditingDropWhenCaptainArrived() {
+
+        Location pickupLocation = RideLocation.COXTOWN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+        Captain captain = captainPool.getCaptainForLink_11();
+        Customer customer = customerPool.getValidCustomerWithWallet();
+        Location newDropLocation = DropOffLocation.BANNERGATTA_ROAD_100M_AWAY.getLocation();
+
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ONTHEWAY);
+
+        OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+        customerClient.editOrderDropLocation(newDropLocation, orderId, SC_OK);
+
+        statusResponse = captainClient.captainStartRide(customer.getId(), orderId, customer.getPin());
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.STARTED);
+
+        captainClient.updateLocation(newDropLocation);
+
+        statusResponse = captainClient.captainCompletesRide(customer.getId(), orderId, newDropLocation);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.DROPPED);
+    }
+
+    @Test(groups = {Groups.REGRESSION, Groups.OM}, enabled = true, priority = 11)
+    @Description("Customer requests Rapido ,edit drop location when captain Started and completes the ride")
+    @Story("Customer should be able to book Rapido using  payment as wallet , edit the drop Location when captain started and complete ride")
+    public void verifyuserShouldBeAbleToCompleteOrderByEditingDropWhenCaptainStarted() {
+
+        Location pickupLocation = RideLocation.KORMANAGALA_POLIC_STN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+        Captain captain = captainPool.getCaptainForLink_11();
+        Customer customer = customerPool.getValidCustomerWithWallet();
+        Location newDropLocation = DropOffLocation.BANNERGATTA_ROAD_100M_AWAY.getLocation();
+
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ONTHEWAY);
+
+        OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+        statusResponse = captainClient.captainStartRide(customer.getId(), orderId, customer.getPin());
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.STARTED);
+
+        customerClient.editOrderDropLocation(newDropLocation, orderId, SC_OK);
+
+        statusResponse = captainClient.captainCompletesRide(customer.getId(), orderId, newDropLocation);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.DROPPED);
+    }
+
+    @Test(groups = {Groups.REGRESSION, Groups.OM}, enabled = true, priority = 12)
+    @Description("Customer Cancels Ride while captain on the way")
+    @Story("Customer should be able to cancel a ride when captain accepts the ride and captain on the way")
+    public void verifyUserCancelRideAndRetryBooking() {
+
+        Location pickupLocation = RideLocation.COXTOWN.getLocation();
+        Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+
+        Captain captain = captainPool.getCaptainForLink_11();
+        captain.setLocation(pickupLocation);
+        Customer customer = customerPool.getValidCustomer5();
+
+        captainClient = new CaptainClient(captain);
+        customerClient = new CustomerClient(customer);
+        rideHelper = new RideHelper(captainClient, customerClient);
+        String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+        AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse.getStatus(), SC_OK);
+        CustomerStatusResponse customerStatusResponse = customerClient.orderStatus();
+        assertEquals(customerStatusResponse.getStatus(), SC_OK);
+
+        captain = captainPool.getCaptainForLink_12();
+        captain.setLocation(pickupLocation);
+        captainClient = new CaptainClient(captain);
+
+        AuthClient authClient = new AuthClient();
+        LoginResponse captainLoginResponse = authClient.loginCaptain(captain);
+        assertEquals(captainLoginResponse.getStatus(), SC_OK);
+        captain.setId(captainLoginResponse.getProfile().get_id());
+        captain.setAccessToken(captainLoginResponse.getToken());
+//		new DashboardClient().abortOrder(DbHelper.getCapLatestOrderId(captain.getMobile()), captain.getId());
+
+        captainClient = new CaptainClient(captain);
+        RiderStatusMessageResponse riderStatusMessageResponse = captainClient.setCaptainOnline();
+        assertEquals(riderStatusMessageResponse.getStatus(), SC_OK);
+        assertEquals(riderStatusMessageResponse.getStatusResponse().getStatus(), "success");
+
+        LocationMessageResponse locationMessageResponse = captainClient.updateLocation();
+        assertEquals(locationMessageResponse.getStatus(), SC_OK);
+
+        CancelResponse cancelResponse = customerClient.cancelRide(customer.getPickupLocationDetails(), orderId, true);
+        assertEquals(cancelResponse.getStatus(), SC_OK);
+        assertEquals(cancelResponse.getInfo().getMessage(), "Cancelled");
+
+        AcceptRejectResponse acceptResponse1 = captainClient.captainAcceptRide(orderId);
+        assertEquals(acceptResponse1.getStatus(), SC_OK);
+        // Assert.assertEquals(acceptResponse1.getAcceptReject().getOrderId(), orderId);
+        rideHelper.checkOrderStatus(RideState.ONTHEWAY);
+
+        OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+        statusResponse = captainClient.captainStartRide(customer.getId(), orderId, customer.getPin());
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.STARTED);
+
+        statusResponse = captainClient.captainCompletesRide(customer.getId(), orderId, dropLocation);
+        assertEquals(statusResponse.getStatus(), SC_OK);
+        rideHelper.checkOrderStatus(RideState.DROPPED);
+    }
+
+
+	@Test(groups = { Groups.SMOKE, Groups.REGRESSION, Groups.OM }, enabled = true, priority = 13)
+	@Description("Customer requests Ride with Corporate Wallet and completes the ride")
+	@Story("Customer should be able to book Rapido using corporate wallet and complete ride")
+	public void userShouldBeAbleToBookRapidoUsingCorporateWalletAndCompleteRide() {
+		Location pickupLocation = RideLocation.KORMANAGALA_POLIC_STN.getLocation();
+		Location dropLocation = RideLocation.BANNERGATTA_ROAD.getLocation();
+
+		Captain captain= captainPool.getCaptainForLink_11();
+		Customer customer = customerPool.getValidCustomerWithCorporateWallet();
+
+		captainClient = new CaptainClient(captain);
+		customerClient = new CustomerClient(customer);
+		rideHelper = new RideHelper(captainClient, customerClient);
+
+
+		String orderId = rideHelper.requestRide(pickupLocation, dropLocation, ServiceType.RAPIDO_TEST);
+
+		float corporateBalanceBeforeRide = customerClient.getWalletBalance(customer.getPaymentType());
+		assertNotEquals(corporateBalanceBeforeRide, 0.0f);
+
+		AcceptRejectResponse acceptResponse = captainClient.captainAcceptRide(orderId);
+		assertEquals(acceptResponse.getStatus(), SC_OK);
+		// Assert.assertEquals(acceptResponse.getAcceptReject().getOrderId(), orderId);
+		CustomerStatusResponse customerStatusResponse;
+		customerStatusResponse = customerClient.orderStatus();
+		assertEquals(customerStatusResponse.getStatus(), SC_OK);
+
+		OrderStatusResponse statusResponse = captainClient.captainArrives(customer.getId(), orderId);
+		assertEquals(statusResponse.getStatus(), SC_OK);
+		rideHelper.checkOrderStatus(RideState.ARRIVED);
+
+		statusResponse = captainClient.captainStartRide(customer.getId(), orderId, customer.getPin());
+		assertEquals(statusResponse.getStatus(), SC_OK);
+		rideHelper.checkOrderStatus(RideState.STARTED);
+
+		statusResponse = captainClient.captainCompletesRide(customer.getId(), orderId, dropLocation);
+		assertEquals(statusResponse.getStatus(), SC_OK);
+		rideHelper.checkOrderStatus(RideState.DROPPED);
+
+        customerStatusResponse = customerClient.orderStatus();
+        Assert.assertEquals(customerStatusResponse.getStatus(), SC_OK);
+        Assert.assertEquals(customerStatusResponse.getCustomerStatusResponse().getData().getStatus(),
+                DROPPED.getState());
+        Assert.assertEquals(orderId, customerStatusResponse.getCustomerStatusResponse().getData().getOrderId());
+
+        customerStatusResponse.getCustomerStatusResponse().getData().getEstimatedAmount();
+
+		float corporateBalanceAfterRide = customerClient.getWalletBalance(customer.getPaymentType());
+        Assert.assertEquals(customer.getPaymentType().getPaymentType(), customerStatusResponse.getCustomerStatusResponse().getData().getPaymentType());
+        Assert.assertEquals(Math.round(corporateBalanceBeforeRide - corporateBalanceAfterRide), Math.round(customerStatusResponse.getCustomerStatusResponse().getData().getEstimatedAmount()));
+	}
+
+	
+	@Test(groups = { Groups.REGRESSION, Groups.ENTITIES }, enabled = true, priority = 14)
+	@Description("Customer login and add/replace and delete home address as favourite")
+	@Story("Customer should be able to modify home address as Favourite")
+	public void verifyuserShouldBeAbleToModifyHomeAddressAsFavAddress() {
+
+		Customer customer = new CustomerPool().getValidCustomer();
+		customerClient = new CustomerClient(customer);
+		Location pickupLocation = RideLocation.KORMANAGALA_POLIC_STN.getLocation();
+		customer.setPickupLocationDetails(pickupLocation);
+
+		LoginResponse customerLoginResponse = authClient.loginCustomer(customer);
+		customer.setId(customerLoginResponse.getProfile().get_id());
+		Assert.assertEquals(customerLoginResponse.getStatus(), SC_OK);
+		String otp = DbHelper.getOtp(customer.getMobileNumber());
+		VerifyOTPResponse verifyCustomerResponse = authClient.verifyOTP(customer, otp);
+		Assert.assertEquals(verifyCustomerResponse.getStatus(), SC_OK);
+		customer.setAccessToken(verifyCustomerResponse.getToken());
+
+		// Add
+		Location favHomeLocation = RideLocation.FAV_HOME.getLocation();
+		FavAddressResponse responseHome = customerClient.addFavAddres(favHomeLocation,"20","Home", 0.0);
+		Assert.assertEquals(responseHome.getStatus(), SC_OK);
+		Assert.assertEquals(responseHome.getInfo().getMessage(), "Got addresses");
+		String home_id = responseHome.getData().get_id();
+		Assert.assertNotNull(home_id);
+
+		// Replace
+		Location favHomeReplaceLocation = RideLocation.FAV_HOME_REPLACE.getLocation();
+		FavAddressResponse responseReplaceHome = customerClient.replaceFavAddresLocation(favHomeReplaceLocation,"10","Home", 0.3, home_id);
+		Assert.assertEquals(responseReplaceHome.getStatus(), SC_OK);
+		Assert.assertEquals(responseReplaceHome.getInfo().getMessage(), "Got addresses");
+		String replaced_home_id = responseReplaceHome.getData().get_id();
+		Assert.assertNotNull(replaced_home_id);
+
+		// Delete
+		FavAddressDeleteResponse responseDeleteHome = customerClient.deleteFavAddresLocation(favHomeReplaceLocation,"10", "Home", 0.3, replaced_home_id);
+		Assert.assertEquals(responseDeleteHome.getInfo().getStatus(), "success");
+		Assert.assertEquals(responseDeleteHome.getInfo().getMessage(), "Got addresses");
+
+	}
+
+	@Test(groups = { Groups.REGRESSION, Groups.ENTITIES }, enabled = true, priority = 15)
+	@Description("Customer login and add/replace and delete work address as favourite")
+	@Story("Customer should be able to modify work address as Favourite")
+	public void verifyuserShouldBeAbleToModifyWorkAddressAsFavAddress() {
+
+		Customer customer = new CustomerPool().getValidCustomer();
+		customerClient = new CustomerClient(customer);
+		Location pickupLocation = RideLocation.KORMANAGALA_POLIC_STN.getLocation();
+		customer.setPickupLocationDetails(pickupLocation);
+
+		LoginResponse customerLoginResponse = authClient.loginCustomer(customer);
+		customer.setId(customerLoginResponse.getProfile().get_id());
+		Assert.assertEquals(customerLoginResponse.getStatus(), SC_OK);
+		String otp = DbHelper.getOtp(customer.getMobileNumber());
+		VerifyOTPResponse verifyCustomerResponse = authClient.verifyOTP(customer, otp);
+		Assert.assertEquals(verifyCustomerResponse.getStatus(), SC_OK);
+		customer.setAccessToken(verifyCustomerResponse.getToken());
+
+		// Add
+		Location favWorkLocation = RideLocation.FAV_WORK.getLocation();
+		FavAddressResponse responseWork = customerClient.addFavAddres(favWorkLocation,"10","Work", 0.01);
+		Assert.assertEquals(responseWork.getStatus(), SC_OK);
+		Assert.assertEquals(responseWork.getInfo().getMessage(),"Got addresses");
+		String work_id = responseWork.getData().get_id();
+		Assert.assertNotNull(work_id);
+
+		// Replace
+		Location favHomeReplaceLocation = RideLocation.FAV_WORK_REPLACE.getLocation();
+		FavAddressResponse responseReplaceHome = customerClient.replaceFavAddresLocation(favHomeReplaceLocation, "20","Work", 0.3, work_id);
+		Assert.assertEquals(responseReplaceHome.getStatus(), SC_OK);
+		Assert.assertEquals(responseReplaceHome.getInfo().getMessage(),"Got addresses");
+		String replaced_work_id = responseReplaceHome.getData().get_id();
+		Assert.assertNotNull(replaced_work_id);
+
+		// Delete
+		FavAddressDeleteResponse responseDeleteWork = customerClient.deleteFavAddresLocation(favHomeReplaceLocation,"20", "Work", 0.3, replaced_work_id);
+		Assert.assertEquals(responseDeleteWork.getInfo().getStatus(),"success");
+		Assert.assertEquals(responseDeleteWork.getInfo().getMessage(),"Got addresses");
+
+	}
+
+	@Test(groups = { Groups.REGRESSION, Groups.ENTITIES }, enabled = true, priority = 16)
+	@Description("Customer login and add/replace and delete work address as favourite")
+	@Story("Customer should be able to modify other address as Favourite")
+	public void verifyuserShouldBeAbleToModifyOtherAddressAsFavAddress() {
+
+		Customer customer = new CustomerPool().getValidCustomer();
+		customerClient = new CustomerClient(customer);
+		Location pickupLocation = RideLocation.KORMANAGALA_POLIC_STN.getLocation();
+		customer.setPickupLocationDetails(pickupLocation);
+
+		LoginResponse customerLoginResponse = authClient.loginCustomer(customer);
+		customer.setId(customerLoginResponse.getProfile().get_id());
+		Assert.assertEquals(customerLoginResponse.getStatus(), SC_OK);
+		String otp = DbHelper.getOtp(customer.getMobileNumber());
+		VerifyOTPResponse verifyCustomerResponse = authClient.verifyOTP(customer, otp);
+		Assert.assertEquals(verifyCustomerResponse.getStatus(), SC_OK);
+		customer.setAccessToken(verifyCustomerResponse.getToken());
+
+		// Add
+		Location favOtherLocation = RideLocation.FAV_OTHER.getLocation();
+		FavAddressResponse responseOther = customerClient.addFavAddres(favOtherLocation,"10","CCD",0.02);
+		Assert.assertEquals(responseOther.getStatus(), SC_OK);
+		Assert.assertEquals(responseOther.getInfo().getMessage(), "Got addresses");
+		String other_id = responseOther.getData().get_id();
+		Assert.assertNotNull(other_id);
+
+		// Delete
+		FavAddressDeleteResponse responseDeleteOther = customerClient.deleteFavAddresLocation(favOtherLocation,"10","CCD",0.02, other_id);
+		Assert.assertEquals(responseDeleteOther.getInfo().getStatus(), "success");
+		Assert.assertEquals(responseDeleteOther.getInfo().getMessage(), "Got addresses");
+
+	}
+
+}
+
+
+

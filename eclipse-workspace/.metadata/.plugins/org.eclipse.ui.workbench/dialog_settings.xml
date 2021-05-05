@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="NewWizardAction">
+		<item key="NewWizardSelectionPage.STORE_SELECTED_ID" value="org.eclipse.jdt.ui.wizards.JavaProjectWizard"/>
+		<list key="NewWizardSelectionPage.STORE_EXPANDED_CATEGORIES_ID">
+			<item value="org.eclipse.ui.Basic"/>
+			<item value="org.eclipse.egit.ui.wizardCategory"/>
+			<item value="org.eclipse.buildship.ui.creationwizards"/>
+			<item value="org.eclipse.jdt.ui.java"/>
+			<item value="org.testng.eclipse"/>
+		</list>
+	</section>
+	<section name="org.eclipse.ui.internal.QuickAccess">
+		<item key="org.eclipse.ui.internal.quickaccess.QuickAccessDialogDIALOG_WIDTH" value="601"/>
+		<item key="org.eclipse.ui.internal.quickaccess.QuickAccessDialogDIALOG_HEIGHT" value="439"/>
+		<item key="org.eclipse.ui.internal.quickaccess.QuickAccessDialogDIALOG_USE_PERSISTED_SIZE" value="true"/>
+		<item key="org.eclipse.ui.internal.quickaccess.QuickAccessDialogDIALOG_USE_PERSISTED_LOCATION" value="true"/>
+		<item key="org.eclipse.ui.internal.quickaccess.QuickAccessDialogDIALOG_X_ORIGIN" value="565"/>
+		<item key="org.eclipse.ui.internal.quickaccess.QuickAccessDialogDIALOG_Y_ORIGIN" value="184"/>
+		<list key="orderedElements">
+			<item value="org.eclipse.ui.console.ConsoleView"/>
+			<item value="org.eclipse.egit.ui.StagingView"/>
+			<item value="org.eclipse.ui.navigator.ProjectExplorer"/>
+			<item value="org.eclipse.ui.editors.preferencePages.Annotations"/>
+			<item value="org.eclipse.ui.window.preferences"/>
+			<item value="org.eclipse.equinox.p2.ui.sdk.installationDetails"/>
+			<item value="org.eclipse.equinox.p2.ui.sdk.install"/>
+			<item value="org.testng.eclipse.ResultView"/>
+			<item value="org.eclipse.ui.views.ContentOutline"/>
+			<item value="org.eclipse.debug.ui.PerspectivePreferencePage"/>
+			<item value="org.eclipse.debug.ui.DebugPerspective"/>
+			<item value="org.eclipse.jdt.ui.PackageExplorer"/>
+			<item value="org.eclipse.ui.views.showView"/>
+			<item value="showQuickAccess"/>
+			<item value="org.eclipse.epp.mpc.ui.command.showMarketplaceWizard"/>
+			<item value="org.eclipse.ui.preferencePages.Keys"/>
+		</list>
+		<list key="orderedProviders">
+			<item value="org.eclipse.e4.ui.parts"/>
+			<item value="org.eclipse.e4.ui.parts"/>
+			<item value="org.eclipse.e4.ui.parts"/>
+			<item value="org.eclipse.ui.preferences"/>
+			<item value="org.eclipse.ui.commands"/>
+			<item value="org.eclipse.ui.commands"/>
+			<item value="org.eclipse.ui.commands"/>
+			<item value="org.eclipse.e4.ui.parts"/>
+			<item value="org.eclipse.e4.ui.parts"/>
+			<item value="org.eclipse.ui.preferences"/>
+			<item value="org.eclipse.ui.perspectives"/>
+			<item value="org.eclipse.e4.ui.parts"/>
+			<item value="org.eclipse.ui.commands"/>
+			<item value="org.eclipse.ui.actions"/>
+			<item value="org.eclipse.ui.commands"/>
+			<item value="org.eclipse.ui.preferences"/>
+		</list>
+		<list key="textEntries">
+			<item value="2"/>
+			<item value="2"/>
+			<item value="2"/>
+			<item value="1"/>
+			<item value="3"/>
+			<item value="1"/>
+			<item value="1"/>
+			<item value="1"/>
+			<item value="2"/>
+			<item value="2"/>
+			<item value="2"/>
+			<item value="1"/>
+			<item value="1"/>
+			<item value="1"/>
+			<item value="3"/>
+			<item value="1"/>
+		</list>
+		<list key="textArray">
+			<item value="consol"/>
+			<item value="console"/>
+			<item value="g"/>
+			<item value="git "/>
+			<item value="pro"/>
+			<item value="project"/>
+			<item value="preferences ann"/>
+			<item value="prefer"/>
+			<item value="preferences"/>
+			<item value="pre"/>
+			<item value="install"/>
+			<item value="ins"/>
+			<item value="test"/>
+			<item value="outlin"/>
+			<item value="outline"/>
+			<item value="perspect"/>
+			<item value="debu"/>
+			<item value="per"/>
+			<item value="debug"/>
+			<item value="packa"/>
+			<item value="show view"/>
+			<item value="view"/>
+			<item value="market"/>
+			<item value="mar"/>
+			<item value="e"/>
+			<item value="keys"/>
+		</list>
+	</section>
+	<section name="org.eclipse.ui.preferences.keysPreferencePage">
+		<item key="actionSetFilter" value="true"/>
+		<item key="internalFilter" value="true"/>
+		<item key="uncategorizedFilter" value="true"/>
+	</section>
+	<section name="ImportExportAction">
+		<item key="ImportExportPage.STORE_SELECTED_IMPORT_WIZARD_ID" value="org.eclipse.buildship.ui.wizards.project.import"/>
+		<list key="ImportExportPage.STORE_EXPANDED_IMPORT_CATEGORIES">
+			<item value="org.eclipse.ui.Basic"/>
+			<item value="org.eclipse.buildship.ui.importwizards"/>
+		</list>
+	</section>
+	<section name="FileSystemImportWizard">
+	</section>
+	<section name="InstallationDialogSettings">
+		<item key="DIALOG_X_ORIGIN" value="0"/>
+		<item key="DIALOG_Y_ORIGIN" value="0"/>
+		<item key="DIALOG_WIDTH" value="1212"/>
+		<item key="DIALOG_HEIGHT" value="635"/>
+		<item key="DIALOG_FONT_NAME" value="1|.AppleSystemUIFont|11.0|0|COCOA|1|.AppleSystemUIFont"/>
+	</section>
+	<section name="ZipFileExportWizard">
+	</section>
+</section>

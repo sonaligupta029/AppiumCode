@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<qualifiedTypeNameHistroy>
+    <fullyQualifiedTypeName name="java.util.List"/>
+    <fullyQualifiedTypeName name="java.lang.reflect.Array"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.customer.addfavouriteaddress.AddFavAddressRequest"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.customer.addfavouriteaddress.FavAddressRequestBuilder"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.customer.addfavouriteaddress.FavAddressRequest"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.customer.addfavouriteaddress.FavAddressResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.customer.addfavouriteaddress.FavAddressReplaceRequest"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.customer.addfavouriteaddress.FavAddressDeleteResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.captain.orderStatus.OrderStatusResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.captain.acceptReject.AcceptRejectResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.proto.customer.protobuffmessages.CustomerStatus.CustomerStatusResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.captain.entities.RideState"/>
+    <fullyQualifiedTypeName name="com.rapido.api.entities.DropOffLocation"/>
+    <fullyQualifiedTypeName name="com.rapido.api.customer.entities.ServiceType"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.captain.riderStatus.RiderStatusMessageResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.captain.location.LocationMessageResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.customer.customercancel.CancelResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.profiles.DashboardClient"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.profiles.abortOrder.AbortResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.db.DbHelper"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.auth.verify.VerifyOTPResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.customer.favouriteAddress.FavAddressResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.endpoints.customer.favouriteAddress.FavAddressDeleteResponse"/>
+    <fullyQualifiedTypeName name="com.rapido.api.customer.endpoints.payments.AddRapidoWalletMoneyRequest"/>
+    <fullyQualifiedTypeName name="org.openqa.selenium.remote.DesiredCapabilities"/>
+    <fullyQualifiedTypeName name="io.appium.java_client.remote.MobileCapabilityType"/>
+    <fullyQualifiedTypeName name="io.appium.java_client.android.AndroidDriver"/>
+    <fullyQualifiedTypeName name="io.appium.java_client.android.AndroidElement"/>
+    <fullyQualifiedTypeName name="java.net.URL"/>
+    <fullyQualifiedTypeName name="java.awt.List"/>
+    <fullyQualifiedTypeName name="java.util.Arrays"/>
+    <fullyQualifiedTypeName name="java.io.File"/>
+    <fullyQualifiedTypeName name="java.lang.System"/>
+    <fullyQualifiedTypeName name="java.util.HashMap"/>
+    <fullyQualifiedTypeName name="javax.swing.text.html.HTMLDocument.Iterator"/>
+    <fullyQualifiedTypeName name="org.testng.annotations.BeforeMethod"/>
+    <fullyQualifiedTypeName name="java.util.concurrent.TimeUnit"/>
+    <fullyQualifiedTypeName name="java.util.ArrayList"/>
+    <fullyQualifiedTypeName name="java.util.Set"/>
+    <fullyQualifiedTypeName name="java.util.LinkedHashSet"/>
+    <fullyQualifiedTypeName name="java.util.Iterator"/>
+</qualifiedTypeNameHistroy>
